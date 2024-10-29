@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTaskDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PrismaClientKnownRequestError, PrismaClientRustPanicError, PrismaClientUnknownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class TaskService {
@@ -25,7 +24,8 @@ export class TaskService {
             if(e.code === "P2002"){
                 return {"Exists": "Task Already Exists!"};
             }else if(e.code === "P2003"){
-                return {"Field Error":`${e.meta.field_name} not exsits!`};            }
+                return {"Field Error":`${e.meta.field_name} not exsits!`};
+            }
             return e
         }
 
@@ -42,6 +42,19 @@ export class TaskService {
             }
         });
 
-        return {"allTasks":allTasks};
+        return {"Success":true,"data":allTasks};
+    }
+
+    async delete(id:number){
+        try{
+        const task = await this.prisma.task.delete({
+            where:{
+                id:id
+            }
+        })
+        return {"Success": true, "Msg": "Task Deleted Successfully!"};
+        }catch(e){
+            return {"Success": false, "Msg":e};
+        }
     }
 }
