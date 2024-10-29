@@ -16,6 +16,12 @@ export class TaskController {
     return this.taskService.findall();
   }
 
+  @Get(":id")
+  findone(@Param("id") id:string){
+    const taskId = parseInt(id);
+    return this.taskService.findone(taskId);
+  }
+
   @Delete(":id")
   delete(@Param('id') id:string){
     const taskId = parseInt(id);

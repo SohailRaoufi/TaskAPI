@@ -6,7 +6,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class TaskService {
     constructor(private readonly prisma:PrismaService){}
     async create(taskdto: CreateTaskDto){
-
         try{
         const task = await this.prisma.task.create({
             data:{
@@ -43,6 +42,23 @@ export class TaskService {
         });
 
         return {"Success":true,"data":allTasks};
+    }
+
+    async findone(id:number){
+        const task = await this.prisma.task.findUnique({
+            where:{
+                id:id
+            }
+        })
+
+        if(!task){
+            return {
+                "Success": false,
+                "Msg":"Task Not Found!",
+            }
+        }
+
+        return {"Success": true, "data": task};
     }
 
     async delete(id:number){
