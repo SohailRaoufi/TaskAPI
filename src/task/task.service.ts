@@ -30,4 +30,18 @@ export class TaskService {
         }
 
     }
+
+    async findall(){
+        const allTasks = await this.prisma.task.findMany({
+            include:{
+                category:{
+                    select:{
+                        name:true
+                    }
+                }
+            }
+        });
+
+        return {"allTasks":allTasks};
+    }
 }
