@@ -9,7 +9,10 @@ export class TaskService {
     async create(taskdto: CreateTaskDto){
         try{
         const task = await this.prisma.task.create({
-            data:taskdto
+            data:{
+                ...taskdto,
+                userId:1
+            }
         });
 
         return task;
