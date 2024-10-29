@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTaskDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TaskService {
@@ -8,14 +9,7 @@ export class TaskService {
     async create(taskdto: CreateTaskDto){
         try{
         const task = await this.prisma.task.create({
-            data:{
-                taskName:taskdto.taskName,
-                taskDetail:taskdto.taskDetail,
-                due_date:taskdto.due_date,
-                category_id:taskdto.category_id,
-                status:taskdto.status,
-                userId:1
-            }
+            data:taskdto
         });
 
         return task;
@@ -59,6 +53,28 @@ export class TaskService {
         }
 
         return {"Success": true, "data": task};
+    }
+
+    async update(id:number, updatedTask:UpdateTaskDto){
+        const existingTask = await this.prisma.task.findUnique({
+            where: { id: id },
+        });
+        if(!existingTask){
+            return {"Success": false, "Msg":"Task Not Found!"};
+        }
+        try{
+        delete updatedTask.userId; // remove the userId.
+        const task = await this.prisma.task.update({
+            where:{id:id},
+            data:updatedTask,
+        })
+
+        return {"Success": true, "data": task};
+        }catch(e){
+            if(e.code === "P2002"){
+                return {"Success": false, "Msg": "Task name Already Exists!"};
+            }
+        }
     }
 
     async delete(id:number){

@@ -21,6 +21,10 @@ export class CreateTaskDto{
     @IsNotEmpty()
     category_id:number
 
+    @IsInt()
+    @IsOptional()
+    userId: number;
+
     @IsDate()
     @Type(() => Date)
     @IsOptional()
