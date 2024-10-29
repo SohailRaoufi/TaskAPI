@@ -24,13 +24,15 @@ model User{
   updated_at          DateTime @updatedAt
 
   tasks               Task[]
+
+  @@map("users")
 }
 
 
 
 model Task{
   id          Int @id @default(autoincrement())
-  taskName    String
+  taskName    String @unique
   taskDetail  String?
 
   status      Status
@@ -44,6 +46,8 @@ model Task{
 
   userId    Int
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("task")
 }
 
 
@@ -52,6 +56,8 @@ model Category{
   name    String @unique
 
   tasks   Task[]
+
+  @@map("category")
 }
 
 
