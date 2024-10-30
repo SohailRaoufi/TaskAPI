@@ -1,12 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable , NotFoundException} from '@nestjs/common';
 import { CreateTaskDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
+interface TaskResponse {
+    success: boolean;
+    data?: any;
+    message?: string;
+}
+
 @Injectable()
 export class TaskService {
     constructor(private readonly prisma:PrismaService){}
-    async create(taskdto: CreateTaskDto){
+    async create(taskdto: CreateTaskDto): Promise<TaskResponse>{
         try{
         const task = await this.prisma.task.create({
             data:{
@@ -15,19 +21,22 @@ export class TaskService {
             }
         });
 
-        return task;
+        return {
+            success: true,
+            data:task
+        };
         }catch(e){
             if(e.code === "P2002"){
-                return {"Exists": "Task Already Exists!"};
+                return {success:false,"message": "Task Already Exists!"};
             }else if(e.code === "P2003"){
-                return {"Field Error":`${e.meta.field_name} not exsits!`};
+                return {success:false,"message":`${e.meta.field_name} not exsits!`};
             }
             return e
         }
 
     }
 
-    async findall(){
+    async findall():Promise<TaskResponse>{
         const allTasks = await this.prisma.task.findMany({
             include:{
                 category:{
@@ -38,10 +47,10 @@ export class TaskService {
             }
         });
 
-        return {"Success":true,"data":allTasks};
+        return {success:true,data:allTasks};
     }
 
-    async findone(id:number){
+    async findone(id:number):Promise<TaskResponse>{
         const task = await this.prisma.task.findUnique({
             where:{
                 id:id
@@ -49,47 +58,44 @@ export class TaskService {
         })
 
         if(!task){
-            return {
-                "Success": false,
-                "Msg":"Task Not Found!",
-            }
+            throw new NotFoundException("Task Not Found!");
         }
 
-        return {"Success": true, "data": task};
+        return {success: true, data: task};
     }
 
-    async update(id:number, updatedTask:UpdateTaskDto){
+    async update(id:number, updatedTask:UpdateTaskDto):Promise<TaskResponse>{
         const existingTask = await this.prisma.task.findUnique({
             where: { id: id },
         });
         if(!existingTask){
-            return {"Success": false, "Msg":"Task Not Found!"};
+            throw new NotFoundException("Task Not Found!");
         }
         try{
-        delete updatedTask.userId; // remove the userId.
+        const {userId, ...updateTask} = updatedTask;
         const task = await this.prisma.task.update({
             where:{id:id},
-            data:updatedTask,
+            data:updateTask,
         })
 
-        return {"Success": true, "data": task};
+        return {success: true, data: task};
         }catch(e){
             if(e.code === "P2002"){
-                return {"Success": false, "Msg": "Task name Already Exists!"};
+                return {success: false, message: "Task name Already Exists!"};
             }
         }
     }
 
-    async delete(id:number){
+    async delete(id:number):Promise<TaskResponse>{
         try{
         const task = await this.prisma.task.delete({
             where:{
                 id:id
             }
         })
-        return {"Success": true, "Msg": "Task Deleted Successfully!"};
+        return {success: true, message: "Task Deleted Successfully!"};
         }catch(e){
-            return {"Success": false, "Msg":e};
+            return {success: false, message:e};
         }
     }
 }
