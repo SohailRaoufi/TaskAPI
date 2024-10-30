@@ -19,6 +19,7 @@ export class CategoryController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    // +id converts string to number
     return this.categoryService.findOne(+id);
   }
 

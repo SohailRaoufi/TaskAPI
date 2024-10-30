@@ -42,7 +42,7 @@ model Task{
   updated_at      DateTime @updatedAt
 
   category_id     Int
-  category Category   @relation(fields: [category_id], references: [id])
+  category Category   @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
   userId    Int
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

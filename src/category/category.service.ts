@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { TaskResponse } from 'src/shared/interfaces/taskresponse.interface';
@@ -25,19 +25,76 @@ export class CategoryService {
     
   }
 
-  findAll() {
-    return `This action returns all category`;
+  async findAll(): Promise<TaskResponse> {
+    const allCategories = await this.prisma.category.findMany();
+
+    return {
+      success: true,
+      data:allCategories
+    }
+    
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
+  async findOne(id: number): Promise<TaskResponse> {
+    const category = await this.prisma.category.findUnique({
+      where:{
+        id:id
+      }
+    })
+
+    if(!category){
+      return {
+        success: false,
+        message: "Category Not Found!"
+      }
+    }
+
+
+    return {
+      success: true,
+      data:category
+    }
   }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    return `This action updates a #${id} category`;
+  async update(id: number, updateCategoryDto: UpdateCategoryDto):Promise<TaskResponse> {
+    const existingCat = await this.prisma.category.findUnique({
+      where: { id: id },
+    });
+    if(!existingCat){
+        throw new NotFoundException("Task Not Found!");
+    }
+    try{
+    const category = await this.prisma.category.update({
+        where:{id:id},
+        data:updateCategoryDto,
+    })
+
+    return {success: true, data: category};
+    }catch(e){
+        if(e.code === "P2002"){
+            return {success: false, message: "Category name Already Exists!"};
+        }
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
+  async remove(id: number):Promise<TaskResponse> {
+    try{
+      const category = await this.prisma.category.delete({
+        where:{
+          id:id
+        }
+      })
+
+      return {
+        success: true,
+        message:"Category Deleted Successfully!"
+      }
+    }catch(e){
+      if(e.code === "P2025"){
+        return {success: false, message:"Category Not Exists!"};
+      }
+      return {success:false, message:e}
+    
+    }
   }
 }
