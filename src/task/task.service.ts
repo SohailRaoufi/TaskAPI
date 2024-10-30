@@ -50,6 +50,14 @@ export class TaskService {
         const task = await this.prisma.task.findUnique({
             where:{
                 id:id
+            },
+            include:{
+                category:{
+                    select:{
+                        name:true
+                    }
+                }
+                
             }
         })
 

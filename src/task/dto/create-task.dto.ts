@@ -1,4 +1,4 @@
-import {IsDate, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString} from "class-validator"
+import {IsDate, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MinLength} from "class-validator"
 import {Type} from "class-transformer"
 import { Status } from "@prisma/client";
 
@@ -7,6 +7,7 @@ import { Status } from "@prisma/client";
 export class CreateTaskDto{
     @IsString()
     @IsNotEmpty()
+    @MinLength(3, { message: 'Task title must be at least 3 characters long' })
     taskName: string;
 
     @IsString()
@@ -14,7 +15,7 @@ export class CreateTaskDto{
     taskDetail: string;
 
     @IsEnum(Status)
-    @IsNotEmpty()
+    @IsOptional()
     status: Status;
 
     @IsInt()

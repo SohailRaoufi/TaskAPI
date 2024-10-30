@@ -35,7 +35,7 @@ model Task{
   taskName    String @unique
   taskDetail  String?
 
-  status      Status
+  status      Status @default(InProgress)
   due_date    DateTime?
 
   created_at      DateTime @default(now())
