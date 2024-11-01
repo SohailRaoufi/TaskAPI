@@ -15,7 +15,10 @@ export class TaskService {
             where: {
                 AND: [
                     { userId: userId },
-                    { taskName: taskdto.taskName }
+                    { taskName: {
+                        equals: taskdto.taskName,
+                        mode: 'insensitive'
+                    }}
                 ]
             }
         });
@@ -70,6 +73,23 @@ export class TaskService {
     }
 
     async update(taskId: number, dto: UpdateTaskDto, userId: number): Promise<TaskResponse> {
+        // Check if task with same name exists (case insensitive)
+        const existingTask = await this.prisma.task.findFirst({
+            where: {
+                taskName: {
+                    equals: dto.taskName,
+                    mode: 'insensitive'
+                },
+                userId: userId,
+                NOT: {
+                    id: taskId
+                }
+            }
+        });
+
+        if (existingTask) {
+            throw new ForbiddenException('A task with this name already exists');
+        }
         const task = await this.prisma.task.findUnique({
             where: { id: taskId }
         });
