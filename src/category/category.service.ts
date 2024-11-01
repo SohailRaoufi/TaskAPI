@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { TaskResponse } from 'src/shared/interfaces/taskresponse.interface';
@@ -8,9 +8,23 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class CategoryService {
   constructor(private readonly prisma:PrismaService){}
   async create(createCategoryDto: CreateCategoryDto): Promise<TaskResponse> {
+    const existingCategory = await this.prisma.category.findFirst({
+      where:{
+        name:{
+          equals: createCategoryDto.name,
+          mode: 'insensitive'
+        }
+      }
+    })
+
+    if(existingCategory){
+      throw new ForbiddenException("Category Already Exists!");
+    }
     try{
     const category = await this.prisma.category.create({
-      data:createCategoryDto,
+      data:{
+        name:createCategoryDto.name
+      },
     });
 
     return {
@@ -57,8 +71,24 @@ export class CategoryService {
   }
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto):Promise<TaskResponse> {
+
+    const findSameCat = await this.prisma.category.findFirst({
+      where:{
+        name:{
+          equals: updateCategoryDto.name,
+          mode: 'insensitive'
+        },
+        NOT: {
+          id: id
+        }
+      }
+    })
+    if(findSameCat){
+      throw new ForbiddenException("Category Already Exists!");
+    }
+
     const existingCat = await this.prisma.category.findUnique({
-      where: { id: id },
+      where: { id: id},
     });
     if(!existingCat){
         throw new NotFoundException("Task Not Found!");
