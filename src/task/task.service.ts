@@ -1,4 +1,4 @@
-import { Injectable , NotFoundException} from '@nestjs/common';
+import { Injectable , NotFoundException, ForbiddenException} from '@nestjs/common';
 import { CreateTaskDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -9,32 +9,38 @@ import { TaskResponse } from '../shared/interfaces/taskresponse.interface';
 export class TaskService {
     constructor(private readonly prisma:PrismaService){}
 
-    async create(taskdto: CreateTaskDto): Promise<TaskResponse>{
-        try{
-        const task = await this.prisma.task.create({
-            data:{
-                ...taskdto,
-                userId:1
+    async create(taskdto: CreateTaskDto, userId:number): Promise<TaskResponse>{
+        // Check if user already has a task with the same name
+        const existingTask = await this.prisma.task.findFirst({
+            where: {
+                AND: [
+                    { userId: userId },
+                    { taskName: taskdto.taskName }
+                ]
             }
         });
 
-        return {
-            success: true,
-            data:task
-        };
-        }catch(e){
-            if(e.code === "P2002"){
-                return {success:false,"message": "Task Already Exists!"};
-            }else if(e.code === "P2003"){
-                return {success:false,"message":`${e.meta.field_name} not exsits!`};
-            }
-            return e
+        if (existingTask) {
+            throw new ForbiddenException('A task with this name already exists');
         }
+
+        // Create new task
+        const task = await this.prisma.task.create({
+            data: {
+                ...taskdto,
+                userId: userId
+            }
+        });
+
+        return { success: true, data: task };
 
     }
 
-    async findall():Promise<TaskResponse>{
+    async findall(userId:number):Promise<TaskResponse>{
         const allTasks = await this.prisma.task.findMany({
+            where:{
+                userId:userId
+            },
             include:{
                 category:{
                     select:{
@@ -47,60 +53,60 @@ export class TaskService {
         return {success:true,data:allTasks};
     }
 
-    async findone(id:number):Promise<TaskResponse>{
+    async findone(taskId: number, userId: number): Promise<TaskResponse> {
         const task = await this.prisma.task.findUnique({
-            where:{
-                id:id
-            },
-            include:{
-                category:{
-                    select:{
-                        name:true
-                    }
-                }
-                
-            }
-        })
-
-        if(!task){
-            throw new NotFoundException("Task Not Found!");
-        }
-
-        return {success: true, data: task};
-    }
-
-    async update(id:number, updatedTask:UpdateTaskDto):Promise<TaskResponse>{
-        const existingTask = await this.prisma.task.findUnique({
-            where: { id: id },
+            where: { id: taskId }
         });
-        if(!existingTask){
-            throw new NotFoundException("Task Not Found!");
-        }
-        try{
-        const {userId, ...updateTask} = updatedTask;
-        const task = await this.prisma.task.update({
-            where:{id:id},
-            data:updateTask,
-        })
 
-        return {success: true, data: task};
-        }catch(e){
-            if(e.code === "P2002"){
-                return {success: false, message: "Task name Already Exists!"};
-            }
+        if (!task) {
+            throw new NotFoundException('Task not found');
         }
+
+        if (task.userId !== userId) {
+            throw new ForbiddenException('Access denied to this task');
+        }
+
+        return { success: true, data: task };
     }
 
-    async delete(id:number):Promise<TaskResponse>{
-        try{
-        const task = await this.prisma.task.delete({
-            where:{
-                id:id
-            }
-        })
-        return {success: true, message: "Task Deleted Successfully!"};
-        }catch(e){
-            return {success: false, message:e};
+    async update(taskId: number, dto: UpdateTaskDto, userId: number): Promise<TaskResponse> {
+        const task = await this.prisma.task.findUnique({
+            where: { id: taskId }
+        });
+
+        if (!task) {
+            throw new NotFoundException('Task not found');
         }
+
+        if (task.userId !== userId) {
+            throw new ForbiddenException('Access denied to this task');
+        }
+
+        const updatedTask = await this.prisma.task.update({
+            where: { id: taskId },
+            data: { ...dto, userId:userId }
+        });
+
+        return { success: true, data: updatedTask };
+    }
+
+    async delete(taskId: number, userId: number): Promise<TaskResponse> {
+        const task = await this.prisma.task.findUnique({
+            where: { id: taskId }
+        });
+
+        if (!task) {
+            throw new NotFoundException('Task not found');
+        }
+
+        if (task.userId !== userId) {
+            throw new ForbiddenException('Access denied to this task');
+        }
+
+        const deletedTask = await this.prisma.task.delete({
+            where: { id: taskId }
+        });
+
+        return { success: true, data: deletedTask };
     }
 }
