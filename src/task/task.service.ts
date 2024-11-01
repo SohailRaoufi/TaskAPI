@@ -3,6 +3,7 @@ import { CreateTaskDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskResponse } from '../shared/interfaces/taskresponse.interface';
+import { PaginationQueryDto } from '../shared/dto/pagination-query.dto';
 
 
 @Injectable()
@@ -39,21 +40,42 @@ export class TaskService {
 
     }
 
-    async findall(userId:number):Promise<TaskResponse>{
-        const allTasks = await this.prisma.task.findMany({
-            where:{
-                userId:userId
-            },
-            include:{
-                category:{
-                    select:{
-                        name:true
-                    }
-                }
-            }
-        });
+    async findall(userId:number, paginationQuery:PaginationQueryDto):Promise<TaskResponse>{
+        const { page, limit } = paginationQuery;
+        const skip = (page - 1) * limit;
 
-        return {success:true,data:allTasks};
+        const [tasks, total] = await Promise.all([
+            this.prisma.task.findMany({
+                where: {
+                userId: userId,
+                },
+                skip,
+                take: limit,
+                orderBy: {
+                created_at: 'asc',
+                },
+            }),
+            this.prisma.task.count({
+                where: {
+                userId: userId,
+                },
+            }),
+            ]);
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+        success: true,
+        data: tasks,
+        meta: {
+            total,
+            page,
+            limit,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPreviousPage: page > 1,
+        },
+        };
     }
 
     async findone(taskId: number, userId: number): Promise<TaskResponse> {

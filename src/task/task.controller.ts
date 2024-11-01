@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Get, Delete, Param, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Delete, Param, Patch, UseGuards, Query } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { JwtGuard } from 'src/auth/guard';
 import { User } from '@prisma/client';
 import { GetUser } from 'src/auth/decorator';
+import { PaginationQueryDto } from 'src/shared/dto/pagination-query.dto';
 
 @UseGuards(JwtGuard)
 @Controller('task')
@@ -17,8 +18,8 @@ export class TaskController {
   }
 
   @Get()
-  findAll(@GetUser() user:User){ 
-    return this.taskService.findall(user.id);
+  findAll(@GetUser() user:User, @Query() paginationQuery:PaginationQueryDto){ 
+      return this.taskService.findall(user.id, paginationQuery);
   }
 
   @Get(":id")
